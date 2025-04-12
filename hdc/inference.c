@@ -1,9 +1,12 @@
 #include <stdio.h>
+// #include "Include/arm_math.h"   // CMSIS DSP header
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
-#include "arm_math.h"   // CMSIS DSP header
-
+#include <complex.h>    // Complex number operations
+#include <stdbool.h>
+#include "weights.h"    // Preloaded hyperdimensional components
+#include "audio_data.h"  // Preloaded audio data
 // ==========================
 // Configuration Parameters
 // ==========================
@@ -14,11 +17,11 @@
 #define NUM_BINS        (FFT_SIZE/2 + 1)
 #define NUM_HIST_BINS   8
 
-// Hyperdimensional settings
-#define D               1024        // Dimensionality of hypervectors
-#define NUM_FEATURES    9           // Number of aggregated features
-#define LEVELS          256         // Quantization levels
-#define NUM_CLASSES     3           // Number of classes
+// Hyperdimensional settings - defined in the weights.h file
+// #define D               
+// #define NUM_FEATURES    
+// #define LEVELS          
+// #define NUM_CLASSES     
 
 // Important feature pairs (indices in the feature vector)
 // Feature order assumed:
@@ -38,24 +41,9 @@ static Pair important_pairs[] = {
 #define NUM_PAIRS (sizeof(important_pairs) / sizeof(important_pairs[0]))
 
 // =====================================================
-// Preloaded Hyperdimensional Components (dummy values)
+// Preloaded Hyperdimensional Components (load them from the weights.h file)
 // =====================================================
-// These arrays should be replaced with the actual pre-stored values.
 
-// Codebook for each feature: NUM_FEATURES x D binary hypervectors.
-static uint8_t codebook[NUM_FEATURES][D] = {
-    /* Preloaded codebook values for feature 0, 1, …, NUM_FEATURES-1 */
-};
-
-// Value-level hypervectors: LEVELS x D.
-static uint8_t value_level_hvs[LEVELS][D] = {
-    /* Preloaded value-level hypervectors */
-};
-
-// Class hypervectors: NUM_CLASSES x D.
-static uint8_t class_hvs[NUM_CLASSES][D] = {
-    /* Preloaded class hypervectors */
-};
 
 // Normalization parameters (from training) for each feature.
 static float feature_min[NUM_FEATURES]   = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
@@ -78,39 +66,11 @@ float compute_spectral_flatness(const float *mag, int num_bins);
 float compute_band_ratio(const float *mag, int num_bins, float sample_rate, int fft_size);
 
 int quantize(float value, int levels);
-void encode_feature_vector(const float *features, uint8_t *hv);
-int hamming_distance(const uint8_t *hv1, const uint8_t *hv2, int d);
+void encode_feature_vector(const float *features, bool *hv);
+// void encode_feature_vector(const float *features, uint8_t *hv);
+// int hamming_distance(const uint8_t *hv1, const uint8_t *hv2, int d);
+int hamming_distance(bool *hv1, const bool *hv2, int d);
 
-// ==========================
-// Audio File Loading Function
-// ==========================
-// This function loads a raw binary file containing float samples.
-int load_audio_file(const char *filename, float **audio_data, int *length) {
-    FILE *fp = fopen(filename, "rb");
-    if (!fp) {
-        printf("Error opening file: %s\n", filename);
-        return -1;
-    }
-    fseek(fp, 0, SEEK_END);
-    long file_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    int num_samples = file_size / sizeof(float);
-    *audio_data = (float *)malloc(file_size);
-    if (!(*audio_data)) {
-        printf("Memory allocation failed for audio data.\n");
-        fclose(fp);
-        return -1;
-    }
-    if (fread(*audio_data, sizeof(float), num_samples, fp) != (size_t)num_samples) {
-        printf("Error reading audio data from file.\n");
-        free(*audio_data);
-        fclose(fp);
-        return -1;
-    }
-    fclose(fp);
-    *length = num_samples;
-    return 0;
-}
 
 // ==========================
 // Feature Extraction Functions
@@ -118,6 +78,10 @@ int load_audio_file(const char *filename, float **audio_data, int *length) {
 
 // Compute Zero Crossing Rate (ZCR) for a frame.
 float compute_zcr(const float *frame, int length) {
+    // print the frame
+    // for (int i = 0; i < length; i++) {
+    //     printf("%f ", frame[i]);
+    // }
     int count = 0;
     for (int i = 1; i < length; i++) {
         if ((frame[i - 1] >= 0 && frame[i] < 0) ||
@@ -134,7 +98,7 @@ float compute_rms(const float *frame, int length) {
     for (int i = 0; i < length; i++) {
         sum += frame[i] * frame[i];
     }
-    return sqrtf(sum / length);
+    return sqrt(sum / length);
 }
 
 // Compute Temporal Entropy for a frame using NUM_HIST_BINS bins.
@@ -157,32 +121,90 @@ float compute_temporal_entropy(const float *frame, int length) {
     for (int i = 0; i < NUM_HIST_BINS; i++) {
         if (histogram[i] > 0) {
             float p = (float)histogram[i] / length;
-            entropy -= p * (logf(p) / logf(2.0f));
+            entropy -= p * (log(p) / log(2.0f));
         }
     }
     return entropy;
 }
 
-// Compute FFT magnitude spectrum using CMSIS DSP.
+#define PI 3.14159265358979323846
+
+// Complex number struct
+typedef struct {
+    float re;
+    float im;
+} Complex;
+
+// Bit reversal utility
+static unsigned int reverse_bits(unsigned int x, unsigned int n) {
+    unsigned int result = 0;
+    for (unsigned int i = 0; i < n; i++) {
+        if ((x >> i) & 1) {
+            result |= 1 << (n - 1 - i);
+        }
+    }
+    return result;
+}
+
+// In-place Cooley-Tukey FFT
+void fft(Complex *buf, int n) {
+    int levels = log2(n);
+    for (int i = 0; i < n; i++) {
+        int j = reverse_bits(i, levels);
+        if (j > i) {
+            Complex tmp = buf[i];
+            buf[i] = buf[j];
+            buf[j] = tmp;
+        }
+    }
+
+    for (int size = 2; size <= n; size *= 2) {
+        float angle = -2.0 * PI / size;
+        Complex w_m = { cos(angle), sin(angle) };
+        for (int start = 0; start < n; start += size) {
+            Complex w = { 1.0, 0.0 };
+            for (int j = 0; j < size / 2; j++) {
+                Complex t, u;
+                t.re = w.re * buf[start + j + size / 2].re - w.im * buf[start + j + size / 2].im;
+                t.im = w.re * buf[start + j + size / 2].im + w.im * buf[start + j + size / 2].re;
+                u = buf[start + j];
+
+                buf[start + j].re = u.re + t.re;
+                buf[start + j].im = u.im + t.im;
+
+                buf[start + j + size / 2].re = u.re - t.re;
+                buf[start + j + size / 2].im = u.im - t.im;
+
+                float tmp_re = w.re * w_m.re - w.im * w_m.im;
+                w.im = w.re * w_m.im + w.im * w_m.re;
+                w.re = tmp_re;
+            }
+        }
+    }
+}
+
+// Main API: Compute magnitude spectrum of a windowed real frame
 void compute_fft(const float *frame, float *mag, int fft_size) {
-    arm_rfft_fast_instance_f32 S;
-    float *fft_out = (float *)malloc(sizeof(float) * fft_size);
-    if (fft_out == NULL) {
-        printf("Memory allocation failed for FFT output.\n");
-        return;
+    Complex *x = (Complex *)malloc(sizeof(Complex) * fft_size);
+    if (!x) return;
+
+    // Apply Hann window and convert to complex
+    for (int i = 0; i < fft_size; i++) {
+        float w = 0.5f - 0.5f * cosf(2 * PI * i / (fft_size - 1));
+        x[i].re = frame[i] * w;
+        x[i].im = 0.0f;
     }
-    arm_rfft_fast_init_f32(&S, fft_size);
-    arm_rfft_fast_f32(&S, (float *)frame, fft_out, 0);
-    // DC component
-    mag[0] = fabsf(fft_out[0]);
-    if (NUM_BINS > 1)
-        mag[NUM_BINS - 1] = fabsf(fft_out[1]);
-    for (int k = 1; k < NUM_BINS - 1; k++) {
-        float re = fft_out[2 * k];
-        float im = fft_out[2 * k + 1];
-        mag[k] = sqrtf(re * re + im * im);
+
+    // Perform FFT
+    fft(x, fft_size);
+
+    // Compute magnitude (only first N/2 + 1 bins, like librosa)
+    int bins = fft_size / 2 + 1;
+    for (int i = 0; i < bins; i++) {
+        mag[i] = sqrtf(x[i].re * x[i].re + x[i].im * x[i].im);
     }
-    free(fft_out);
+
+    free(x);
 }
 
 // Compute Spectral Centroid.
@@ -215,15 +237,20 @@ float compute_spectral_rolloff(const float *mag, int num_bins, float sample_rate
 }
 
 // Compute Spectral Flatness.
+
 float compute_spectral_flatness(const float *mag, int num_bins) {
-    float geo_mean = 1.0f, arith_mean = 0.0f;
+    float log_sum = 0.0f;
+    float arith_sum = 0.0f;
     for (int k = 0; k < num_bins; k++) {
-        arith_mean += mag[k];
-        geo_mean *= (mag[k] + 1e-10f);
+        float x = mag[k] + 1e-10f;  // avoid log(0) or divide-by-zero
+        log_sum += logf(x);
+        arith_sum += x;
     }
-    geo_mean = powf(geo_mean, 1.0f / num_bins);
-    return geo_mean / ((arith_mean / num_bins) + 1e-10f);
+    float geo_mean = expf(log_sum / num_bins);
+    float arith_mean = arith_sum / num_bins;
+    return geo_mean / arith_mean;
 }
+
 
 // Compute Band Ratio: energy in 1000-4000 Hz vs. 100-1000 Hz.
 float compute_band_ratio(const float *mag, int num_bins, float sample_rate, int fft_size) {
@@ -270,15 +297,17 @@ void extract_features(const float *audio_data, int length, float *feature_vector
         free(rolloff_vals); free(flatness_vals); free(band_ratio_vals); free(mag);
         return;
     }
-
+    // printf("Memory allocated for feature arrays.\n");
     // Process each frame.
     for (int i = 0; i < num_frames; i++) {
         int start = i * HOP_LENGTH;
         const float *frame = audio_data + start;
         zcr_vals[i] = compute_zcr(frame, FRAME_LENGTH);
+        printf("Frame %d: %f\n", i, zcr_vals[i]);
         rms_vals[i] = compute_rms(frame, FRAME_LENGTH);
+        // printf("RMS %f\n", rms_vals[i]);
         entropy_vals[i] = compute_temporal_entropy(frame, FRAME_LENGTH);
-
+        // printf("Good till here %d\n", i);
         compute_fft(frame, mag, FFT_SIZE);
         centroid_vals[i] = compute_spectral_centroid(mag, NUM_BINS, SAMPLE_RATE, FFT_SIZE);
         rolloff_vals[i] = compute_spectral_rolloff(mag, NUM_BINS, SAMPLE_RATE, FFT_SIZE, 0.85f);
@@ -305,7 +334,7 @@ void extract_features(const float *audio_data, int length, float *feature_vector
         sum_band_ratio += band_ratio_vals[i];
     }
     float mean_zcr = sum_zcr / num_frames;
-    float std_zcr = sqrtf(sum_zcr_sq / num_frames - mean_zcr * mean_zcr);
+    float std_zcr = sqrt(sum_zcr_sq / num_frames - mean_zcr * mean_zcr);
     float mean_rms = sum_rms / num_frames;
     float mean_entropy = sum_entropy / num_frames;
     float mean_centroid = sum_centroid / num_frames;
@@ -326,6 +355,11 @@ void extract_features(const float *audio_data, int length, float *feature_vector
     feature_vector[7] = mean_flatness;
     feature_vector[8] = mean_band_ratio;
 
+    printf("Feature vector:\n");
+    for (int i = 0; i < NUM_FEATURES; i++) {
+        printf("%f ", feature_vector[i]);
+    }
+    printf("\n");
     free(zcr_vals); free(rms_vals); free(entropy_vals); free(centroid_vals);
     free(rolloff_vals); free(flatness_vals); free(band_ratio_vals); free(mag);
 }
@@ -345,15 +379,16 @@ int quantize(float value, int levels) {
 // Encode the aggregated feature vector into a binary hypervector.
 // The process includes encoding each individual feature (via XOR of its codebook and value-level HV)
 // and also encoding selected feature pairs, then bundling via majority vote.
-void encode_feature_vector(const float *features, uint8_t *hv) {
+void encode_feature_vector(const float *features, bool *hv) {
+    // void encode_feature_vector(const float *features, uint8_t *hv) {
     // Temporary storage for individual encoded hypervectors.
     // Total count = NUM_FEATURES + NUM_PAIRS.
     int total_hvs = NUM_FEATURES + NUM_PAIRS;
     // Allocate a 2D array: total_hvs x D (using dynamic allocation).
     int i, j;
-    uint8_t **temp_hvs = (uint8_t **)malloc(total_hvs * sizeof(uint8_t *));
+    bool **temp_hvs = (bool **)malloc(total_hvs * sizeof(bool *));
     for (i = 0; i < total_hvs; i++) {
-        temp_hvs[i] = (uint8_t *)malloc(D * sizeof(uint8_t));
+        temp_hvs[i] = (bool *)malloc(D * sizeof(bool));
         // Initialize to zero.
         for (j = 0; j < D; j++) {
             temp_hvs[i][j] = 0;
@@ -377,8 +412,8 @@ void encode_feature_vector(const float *features, uint8_t *hv) {
         int q1 = quantize(features[f1], LEVELS);
         int q2 = quantize(features[f2], LEVELS);
         for (j = 0; j < D; j++) {
-            uint8_t hv1 = codebook[f1][j] ^ value_level_hvs[q1][j];
-            uint8_t hv2 = codebook[f2][j] ^ value_level_hvs[q2][j];
+            bool hv1 = codebook[f1][j] ^ value_level_hvs[q1][j];
+            bool hv2 = codebook[f2][j] ^ value_level_hvs[q2][j];
             temp_hvs[idx][j] = hv1 ^ hv2;
         }
     }
@@ -400,7 +435,7 @@ void encode_feature_vector(const float *features, uint8_t *hv) {
 }
 
 // Compute the Hamming distance between two binary hypervectors.
-int hamming_distance(const uint8_t *hv1, const uint8_t *hv2, int d) {
+int hamming_distance(bool *hv1, const bool *hv2, int d) {
     int dist = 0;
     for (int i = 0; i < d; i++) {
         if (hv1[i] != hv2[i]) {
@@ -418,18 +453,30 @@ int main(void) {
     // 1. Load Audio Data from Storage
     // -----------------------------
     float *audio_data = NULL;
-    int audio_length = 0;
-    if (load_audio_file("audio_input.bin", &audio_data, &audio_length) != 0) {
-        return -1;
+    // copy the audio data from the audio_data.h file
+    int audio_length = AUDIO_LENGTH;
+    audio_data = (float *)malloc(sizeof(float) * AUDIO_LENGTH);
+    for (int i = 0; i < AUDIO_LENGTH; i++) {
+        audio_data[i] = audio_data_vector[i];
     }
 
+    printf("Loaded audio data of length: %d\n", audio_length);
     // -----------------------------
     // 2. Extract Aggregated Feature Vector
     // -----------------------------
     float features[NUM_FEATURES] = {0};
+    // float features[NUM_FEATURES] = {0.45810546875,
+    //     0.049704377129124865,
+    //     0.0002689302093737448,
+    //     0.0003675652842503041,
+    //     2.071158281144997,
+    //     1727.1224467060458,
+    //     3006.7741297468356,
+    //     0.58361894,
+    //     3.0681803};
     extract_features(audio_data, audio_length, features);
     free(audio_data);
-
+    printf("Extracted features:\n");
     // -----------------------------
     // 3. Normalize Features (using stored min & range)
     // -----------------------------
@@ -443,7 +490,7 @@ int main(void) {
     // -----------------------------
     // 4. Encode Feature Vector into a Hypervector
     // -----------------------------
-    uint8_t hv[D] = {0};
+    bool hv[D] = {false};
     encode_feature_vector(norm_features, hv);
 
     // -----------------------------
@@ -453,11 +500,15 @@ int main(void) {
     int min_distance = D + 1;
     for (int i = 0; i < NUM_CLASSES; i++) {
         int dist = hamming_distance(hv, class_hvs[i], D);
+        printf("Class %s: Hamming distance = %d\n", label_names[i], dist);
         if (dist < min_distance) {
             min_distance = dist;
             predicted_class = i;
         }
     }
-    printf("Predicted class: %d (Hamming distance: %d)\n", predicted_class, min_distance);
+    printf("Predicted class: %s (Hamming distance: %d)\n", label_names[predicted_class], min_distance);
+    // print memory taken by codebook, value_level_hvs and class_hvs
+    printf("Memory taken by HVs: %lu bytes\n", sizeof(codebook) + sizeof(value_level_hvs) + sizeof(class_hvs) + sizeof(label_names));
+
     return 0;
 }
