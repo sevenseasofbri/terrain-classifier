@@ -193,7 +193,7 @@ void extract_features(const float *audio_data, int length, float *feature_vector
     if (length >= FRAME_LENGTH)
         num_frames = 1 + (length - FRAME_LENGTH) / HOP_LENGTH;
     else {
-        printf("Audio too short for processing.\n");
+        // printf("Audio too short for processing.\n");
         return;
     }
 
@@ -209,7 +209,7 @@ void extract_features(const float *audio_data, int length, float *feature_vector
 
     if (!zcr_vals || !rms_vals || !entropy_vals || !centroid_vals ||
         !rolloff_vals || !flatness_vals || !band_ratio_vals || !mag) {
-        printf("Memory allocation failed for feature arrays.\n");
+        // printf("Memory allocation failed for feature arrays.\n");
         free(zcr_vals); free(rms_vals); free(entropy_vals); free(centroid_vals);
         free(rolloff_vals); free(flatness_vals); free(band_ratio_vals); free(mag);
         return;
@@ -220,7 +220,7 @@ void extract_features(const float *audio_data, int length, float *feature_vector
         int start = i * HOP_LENGTH;
         const float *frame = audio_data + start;
         zcr_vals[i] = compute_zcr(frame, FRAME_LENGTH);
-        printf("Frame %d: %f\n", i, zcr_vals[i]);
+        // printf("Frame %d: %f\n", i, zcr_vals[i]);
         rms_vals[i] = compute_rms(frame, FRAME_LENGTH);
         // printf("RMS %f\n", rms_vals[i]);
         entropy_vals[i] = compute_temporal_entropy(frame, FRAME_LENGTH);
@@ -272,11 +272,11 @@ void extract_features(const float *audio_data, int length, float *feature_vector
     feature_vector[7] = mean_flatness;
     feature_vector[8] = mean_band_ratio;
 
-    printf("Feature vector:\n");
-    for (int i = 0; i < NUM_FEATURES; i++) {
-        printf("%f ", feature_vector[i]);
-    }
-    printf("\n");
+    // printf("Feature vector:\n");
+    // for (int i = 0; i < NUM_FEATURES; i++) {
+    //     printf("%f ", feature_vector[i]);
+    // }
+    // printf("\n");
     free(zcr_vals); free(rms_vals); free(entropy_vals); free(centroid_vals);
     free(rolloff_vals); free(flatness_vals); free(band_ratio_vals); free(mag);
 }
