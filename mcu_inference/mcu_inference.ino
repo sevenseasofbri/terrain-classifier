@@ -2,6 +2,7 @@
 
 #include "weights.h"
 #include "audio_data.h"
+//#include <stdint.h>
 
 #define FRAME_LENGTH    2048
 #define HOP_LENGTH      512
@@ -362,6 +363,8 @@ int hamming_distance(bool *hv1, const bool *hv2, int d) {
     return dist;
 }
 
+//uint16_t t_start, t_end;
+
 void setup() {
   Serial.begin(115200);
   while (!Serial);
@@ -375,6 +378,8 @@ void setup() {
 
   Serial.print("Loaded audio data of length: ");
   Serial.println(AUDIO_LENGTH);
+
+  uint16_t t_start = millis();          // Start timing
 
   float features[NUM_FEATURES];
 //  extract_features(audio_data_vector, AUDIO_LENGTH, features);
@@ -395,18 +400,23 @@ void setup() {
   int predicted_class = -1;
   for (int i = 0; i < NUM_CLASSES; i++) {
     int dist = hamming_distance(hv, class_hvs[i], D);
-    Serial.print("Class "); Serial.print(label_names[i]);
-    Serial.print(" Hamming Distance: "); Serial.println(dist);
+//    Serial.print("Class "); Serial.print(label_names[i]);
+//    Serial.print(" Hamming Distance: "); Serial.println(dist);
     if (dist < min_dist) {
       min_dist = dist;
       predicted_class = i;
     }
   }
+
+  uint16_t t_end = millis();  // Stop timing
+  
   Serial.print("Predicted: ");
   Serial.print(label_names[predicted_class]);
   Serial.print(" (distance: ");
   Serial.print(min_dist);
   Serial.println(")");
+  Serial.print("Total Inference Time (ms): ");
+  Serial.println(t_end - t_start);
 
   Serial.print("Memory taken by HVs: ");
   Serial.print(sizeof(codebook) + sizeof(value_level_hvs) + sizeof(class_hvs) + sizeof(label_names));
