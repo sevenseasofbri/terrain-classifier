@@ -373,7 +373,7 @@ void setup() {
   // Allocate audio buffer
   float *audio_data = new float[AUDIO_LENGTH];
   for (int i = 0; i < AUDIO_LENGTH; i++) {
-    audio_data[i] = audio_data_vector_wood[i];
+    audio_data[i] = audio_data_vector_cloth[i];
   }
 
   Serial.println("Recording audio... 5s");
