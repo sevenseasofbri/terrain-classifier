@@ -377,7 +377,7 @@ void setup() {
   }
 
   Serial.println("Recording audio... 5s");
-  delay(5);
+  delay(5000);
 
   uint16_t t_start = millis();          // Start timing
 
