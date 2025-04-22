@@ -369,17 +369,15 @@ void setup() {
   Serial.begin(115200);
   while (!Serial);
   Serial.println("Artemis HDC Audio Classification");
-  rtc.setToCompilerTime();
 
   // Allocate audio buffer
   float *audio_data = new float[AUDIO_LENGTH];
   for (int i = 0; i < AUDIO_LENGTH; i++) {
-    audio_data[i] = audio_data_vector[i];
+    audio_data[i] = audio_data_vector_wood[i];
   }
 
-  Serial.print("Recording audio... ");
+  Serial.println("Recording audio... 5s");
   delay(5);
-  Serial.println(AUDIO_LENGTH);
 
   uint16_t t_start = millis();          // Start timing
 

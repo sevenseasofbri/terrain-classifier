@@ -445,7 +445,7 @@ void loop() {
 
     for (int i = 0; i < FRAME_LENGTH; i++) {
 //      audio_data_buffer[i] = ((int16_t)pdmData[i]) / 32768.0f;
-      audio_data_buffer[i] = ((int16_t)pdmData[i]);
+      audio_data_buffer[i] = ((int16_t)pdmData[i]) / 32768.0f;
       Serial.println(audio_data_buffer[i]);
     }
 
