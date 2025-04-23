@@ -1,5 +1,6 @@
 Files:
-- `test.ipynb`: Working HDC code for training a HDC classifier and making inferences.
+- `test.ipynb`: Working HDC code for training a HDC classifier and making inferences. This also contains the helper scripts for plotting the results presented in the report.
 - `train.py`: Generated version of above python notebook with numpy-based feature extractors
-- `audio/`: Sample audio files for training and testing with 3 classes
-- `inference.c`: Generate version of above notebook for making inferences of the recorded audio. Assumes audio data is present in header files
+- `data/`: Collected Audio samples for training and testing with 5 classes
+- `data-vibration/`: Collected Audio samples for training and testing with 5 classes
+- `weights/`: Codebooks and the class HV's required for inferencing.
