@@ -6,7 +6,6 @@
 #define FRAME_LENGTH    2048
 #define HOP_LENGTH      512
 #define SAMPLE_RATE     8000
-#define PDM_SAMPLE_RATE 32000  // Renamed to avoid enum clash
 #define FFT_SIZE        FRAME_LENGTH
 #define NUM_BINS        (FRAME_LENGTH / 2 + 1)
 #define NUM_HIST_BINS   8
@@ -414,7 +413,6 @@ void loop() {
 
     for (int i = 0; i < FRAME_LENGTH; i++) {
       audio_data_buffer[i] = ((int16_t)pdmData[i]) / 32768.0f;
-      Serial.println(audio_data_buffer[i]);
     }
 
     float features[NUM_FEATURES];
