@@ -13,11 +13,14 @@
 
 AP3_PDM myPDM;
 float audio_data_buffer[FRAME_LENGTH];  // Normalized float version
+float vibration_data_buffer[FRAME_LENGTH];
 
 bool audio_ready = false;
 
 #define pdmDataSize 4096 //Library requires array be 4096
 uint16_t pdmData[pdmDataSize];
+
+#define EXTERNAL_ADC_PIN A11
 
 void *PDMHandle = NULL;
 am_hal_pdm_config_t newConfig = {
@@ -395,7 +398,7 @@ int hamming_distance(bool *hv1, const bool *hv2, int d) {
 void setup() {
   Serial.begin(115200);
   while (!Serial);
-  Serial.println("Starting PDM mic + HDC inference...");
+  Serial.println("Starting HDC Classification...");
 
   if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
   {
