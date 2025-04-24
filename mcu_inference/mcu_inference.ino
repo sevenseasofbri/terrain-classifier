@@ -1,8 +1,7 @@
-// hdc_inference.ino - Ported for SparkFun Artemis RedBoard ATP
+// mcu_inference.ino - Ported for SparkFun Artemis RedBoard ATP
 
 #include "weights.h"
 #include "audio_data.h"
-//#include <stdint.h>
 
 #define FRAME_LENGTH    2048
 #define HOP_LENGTH      512
@@ -363,7 +362,6 @@ int hamming_distance(bool *hv1, const bool *hv2, int d) {
     return dist;
 }
 
-//uint16_t t_start, t_end;
 
 void setup() {
   Serial.begin(115200);
@@ -382,7 +380,6 @@ void setup() {
   uint16_t t_start = millis();          // Start timing
 
   float features[NUM_FEATURES];
-//  extract_features(audio_data_vector, AUDIO_LENGTH, features);
   extract_features(audio_data, AUDIO_LENGTH, features);
 
 //  Serial.println("Extracted features:");
