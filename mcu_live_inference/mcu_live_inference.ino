@@ -1,7 +1,7 @@
-// hdc_inference.ino - Ported for SparkFun Artemis RedBoard ATP
+// mcu_live_inference.ino - Ported for SparkFun Artemis RedBoard ATP
 
 #include <PDM.h>  // Use SparkFun Apollo3 PDM driver
-#include "weights.h"
+#include "weights.h" 
 
 #define FRAME_LENGTH    2048
 #define HOP_LENGTH      512
@@ -13,7 +13,6 @@
 #define AM_HAL_PDM_GAIN_20 "20"
 
 AP3_PDM myPDM;
-//uint16_t pdmData[FRAME_LENGTH];  // Raw audio buffer
 float audio_data_buffer[FRAME_LENGTH];  // Normalized float version
 
 bool audio_ready = false;
@@ -58,24 +57,6 @@ Pair important_pairs[] = {
 
 float feature_min[NUM_FEATURES]   = {0.0f};
 float feature_range[NUM_FEATURES] = {1.0f};
-
-//SPPDMClass mic;  // PDM mic object
-//float audio_data_buffer[FRAME_LENGTH];
-//bool audio_ready = false;
-
-//void onPDMdata() {
-//  static int sampleIndex = 0;
-//  while (mic.available() > 0 && sampleIndex < FRAME_LENGTH) {
-//    int16_t sample;
-//    mic.read(&sample, sizeof(sample));
-//    audio_data_buffer[sampleIndex++] = sample / 32768.0f;
-//    if (sampleIndex >= FRAME_LENGTH) {
-//      audio_ready = true;
-//      sampleIndex = 0;
-//      mic.end();
-//    }
-//  }
-//}
 
 unsigned int reverse_bits(unsigned int x, unsigned int bits) {
   unsigned int result = 0;
@@ -132,7 +113,6 @@ float compute_temporal_entropy(const float *frame, int length) {
 void fft(Complex *buf, int n) {
   int levels = log2(n);
   for (int i = 0; i < n; i++) {
-//    int j = __builtin_bitreverse32(i) >> (32 - levels);
     int j = reverse_bits(i, levels);
     if (j > i) {
       Complex tmp = buf[i]; buf[i] = buf[j]; buf[j] = tmp;
@@ -418,33 +398,21 @@ void setup() {
   while (!Serial);
   Serial.println("Starting PDM mic + HDC inference...");
 
-//  if (!myPDM.begin(1, PDM_SAMPLE_RATE)) {
-//    Serial.println("PDM begin failed");
-//    while (1);
-//  }
-//  myPDM.setGain(AM_HAL_PDM_GAIN_P90DB);  // Correct enum usage
   if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
   {
     Serial.println("PDM Init failed. Are you sure these pins are PDM capable?");
-    while (1)
-      ;
+    while (1);
   }
   myPDM.updateConfig(newConfig); //Send config struct
 
 }
 
 void loop() {
-  // Allocate audio buffer
-//  float *audio_data = new float[AUDIO_LENGTH];
-//  for (int i = 0; i < AUDIO_LENGTH; i++) {
-//    audio_data[i] = audio_data_vector[i];
-//  }
+  
   if (myPDM.available()) {
-//    myPDM.getData(pdmData, FRAME_LENGTH);  // Provide required arguments
     myPDM.getData(pdmData, pdmDataSize);
 
     for (int i = 0; i < FRAME_LENGTH; i++) {
-//      audio_data_buffer[i] = ((int16_t)pdmData[i]) / 32768.0f;
       audio_data_buffer[i] = ((int16_t)pdmData[i]) / 32768.0f;
       Serial.println(audio_data_buffer[i]);
     }
@@ -480,70 +448,5 @@ void loop() {
     Serial.println(label_names[predicted_class]);
     delay(1000);  // Wait before next capture
   }
-  
-//    uint16_t t_end = millis();  // Stop timing
-//    
-//    Serial.print("Predicted: ");
-//    Serial.println(label_names[predicted_class]);
-//
-//    Serial.print(" (distance: ");
-//    Serial.print(min_dist);
-//    Serial.println(")");
-//    Serial.print("Total Inference Time (ms): ");
-//    Serial.println(t_end - t_start);
-//
-//    Serial.print("Memory taken by HVs: ");
-//    Serial.print(sizeof(codebook) + sizeof(value_level_hvs) + sizeof(class_hvs) + sizeof(label_names));
-//    Serial.println(" bytes");
-//
-//    delay(1000);  // Pause before next capture
-//    PDM.begin(1, SAMPLE_RATE);  // Restart mic for next round
-//  }
-  
-//  Serial.print("Loaded audio data of length: ");
-//  Serial.println(AUDIO_LENGTH);
-
-//  float features[NUM_FEATURES];
-//  extract_features(audio_data_vector, AUDIO_LENGTH, features);
-//  extract_features(audio_data, AUDIO_LENGTH, features);
-
-//  Serial.println("Extracted features:");
-//
-//  float norm_features[NUM_FEATURES];
-//  for (int i = 0; i < NUM_FEATURES; i++) {
-//    norm_features[i] = (features[i] - feature_min[i]) / feature_range[i];
-//    norm_features[i] = constrain(norm_features[i], 0.0f, 1.0f);
-//  }
-
-//  bool hv[D];
-//  encode_feature_vector(norm_features, hv);
-//
-//  int min_dist = D + 1;
-//  int predicted_class = -1;
-//  for (int i = 0; i < NUM_CLASSES; i++) {
-//    int dist = hamming_distance(hv, class_hvs[i], D);
-////    Serial.print("Class "); Serial.print(label_names[i]);
-////    Serial.print(" Hamming Distance: "); Serial.println(dist);
-//    if (dist < min_dist) {
-//      min_dist = dist;
-//      predicted_class = i;
-//    }
-//  }
-
-//  uint16_t t_end = millis();  // Stop timing
-//  
-//  Serial.print("Predicted: ");
-//  Serial.print(label_names[predicted_class]);
-//  Serial.print(" (distance: ");
-//  Serial.print(min_dist);
-//  Serial.println(")");
-//  Serial.print("Total Inference Time (ms): ");
-//  Serial.println(t_end - t_start);
-//
-//  Serial.print("Memory taken by HVs: ");
-//  Serial.print(sizeof(codebook) + sizeof(value_level_hvs) + sizeof(class_hvs) + sizeof(label_names));
-//  Serial.println(" bytes");
-
+ 
 }
-
-//void loop() {}
