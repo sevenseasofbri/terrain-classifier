@@ -20,13 +20,13 @@ This repository contains the project files for our **CS5272 Embedded Systems** c
   Code for training (on a regular computer) and inference (on a microcontroller) using the **Hyperdimensional Computing (HDC)** paradigm on both audio and vibration sensor data.
 
 - **`mcu_inference/`**  
-  Code for deploying inference code on micro-controller and latency and memory measurement with static data files
+  Code for deploying inference code on micro-controller and latency and memory measurement with static data files.
 
 - **`mcu_live_inference/`**  
-  Code for deploying inference code on micro-controller with live audio and vibration data capture
+  Code for deploying inference code on micro-controller with live audio and vibration data capture.
 
 - **`meas/`**  
-  Images and CSV files for power profiles using Nordic power profiler
+  Images and CSV files for power profiles using Nordic power profiler.
 
 - **`motor_controller/`**  
   Code for the  motor controller driving the motor responsible for rotating the rover wheel across different surfaces.
