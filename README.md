@@ -1,6 +1,9 @@
 ## CS5272 Embedded Systems Project Repository
 
-This repository contains the project files for our **CS5272 Embedded Systems** course project. You can find the report [here](./Report.pdf)
+This repository contains the project files for our **CS5272 Embedded Systems** course project.
+
+- **Project Title**: *Hyperdimensional Computing for Acoustic and Proprioceptive Terrain Classification*
+- **Report**: Click [here](./Report.pdf)
 
 ### 📂 Folder Descriptions
 
