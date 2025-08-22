@@ -1,6 +1,6 @@
 ## CS5272 Embedded Systems Project Repository
 
-This repository contains the project files for our **CS5272 Embedded Systems** course project.
+This repository contains the project files for our **CS5272 Embedded Systems** course project. You can find the report [here](./Report.pdf)
 
 ### 📂 Folder Descriptions
 
